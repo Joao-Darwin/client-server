@@ -76,6 +76,16 @@ def leave_server(server_ip):
     except Exception as e:
         print(f"[ERROR] {e}")
 
+def delete_file(server_ip, filename):
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
+            client_socket.connect((server_ip, SERVER_PORT))
+            client_socket.sendall(f"DELETEFILE {filename}".encode())
+            response = client_socket.recv(1024).decode()
+            print(response)
+    except Exception as e:
+        print(f"[ERROR] {e}")
+
 def print_options():
     print("\n1- JOIN SERVER")
     print("2- REFRESH LIST")
@@ -83,6 +93,7 @@ def print_options():
     print("4- GET FILE")
     print("5- LEAVE SERVER")
     print("6- LIST FILES")
+    print("7- DELETE FILE")
     print("0- EXIT\n")
 
 def main():
@@ -112,6 +123,10 @@ def main():
             elif choice == "6":
                 server_ip = input("Enter server IP: ")
                 list_files(server_ip)
+            elif choice == "7":
+                server_ip = input("Enter server IP: ")
+                filename = input("Enter filename to delete: ")
+                delete_file(server_ip, filename)
             elif choice == "0":
                 print("[INFO] Exiting program.")
                 break

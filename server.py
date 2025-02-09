@@ -51,6 +51,7 @@ def handle_client(client_socket, client_address, data):
 
             elif command == 'DELETEFILE':
                 filename = args[0]
+                print(filename)
                 if any(f['filename'] == filename for f in data.get(client_ip, [])):
                     data[client_ip] = [f for f in data[client_ip] if f['filename'] != filename]
                     save_data(data)
