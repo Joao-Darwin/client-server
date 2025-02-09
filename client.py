@@ -1,5 +1,6 @@
 import socket
 import os
+import threading
 
 SERVER_PORT = 1234
 CLIENT_PORT = 1235
@@ -7,6 +8,36 @@ PUBLIC_FOLDER = "./public"
 
 if not os.path.exists(PUBLIC_FOLDER):
     os.makedirs(PUBLIC_FOLDER)
+
+def handle_file_request(client_socket):
+    try:
+        request = client_socket.recv(1024).decode()
+        parts = request.split()
+        if parts[0] == "GET" and len(parts) >= 3:
+            filename = parts[1]
+            offset_start = int(parts[2])
+            offset_end = int(parts[3]) if len(parts) == 4 else None
+
+            file_path = os.path.join(PUBLIC_FOLDER, filename)
+            if os.path.exists(file_path):
+                with open(file_path, "rb") as file:
+                    file.seek(offset_start)
+                    data = file.read(offset_end - offset_start if offset_end else None)
+                    client_socket.sendall(data)
+            else:
+                client_socket.sendall(b"FILENOTFOUND")
+    except Exception as e:
+        print(f"[ERROR] {e}")
+    finally:
+        client_socket.close()
+
+def start_file_server():
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
+        server_socket.bind(("", CLIENT_PORT))
+        server_socket.listen(5)
+        while True:
+            client_socket, _ = server_socket.accept()
+            threading.Thread(target=handle_file_request, args=(client_socket,)).start()
 
 def join_server(server_ip):
     try:
@@ -19,14 +50,31 @@ def join_server(server_ip):
         print(f"[ERROR] {e}")
 
 def refresh_list(server_ip):
-    files = [f for f in os.listdir(PUBLIC_FOLDER) if os.path.isfile(os.path.join(PUBLIC_FOLDER, f))]
+    files_local = {f for f in os.listdir(PUBLIC_FOLDER) if os.path.isfile(os.path.join(PUBLIC_FOLDER, f))}
+
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
             client_socket.connect((server_ip, SERVER_PORT))
-            for file in files:
+
+            client_socket.sendall(b"LISTMYFILES")
+            response = client_socket.recv(4096).decode()
+
+            files_server = set()
+            if response.strip():
+                for line in response.strip().split("\n"):
+                    if "Name: " in line:
+                        filename = line.replace("Name: ", "").strip()
+                        files_server.add(filename)
+
+            for file in files_local:
                 size = os.path.getsize(os.path.join(PUBLIC_FOLDER, file))
                 client_socket.sendall(f"CREATEFILE {file} {size}".encode())
                 print(client_socket.recv(1024).decode())
+
+            for file in files_server - files_local:
+                client_socket.sendall(f"DELETEFILE {file}".encode())
+                print(client_socket.recv(1024).decode())
+
     except Exception as e:
         print(f"[ERROR] {e}")
 
@@ -136,4 +184,5 @@ def main():
         print("\nSEE YOU LATER :)")
 
 if __name__ == "__main__":
+    threading.Thread(target=start_file_server, daemon=True).start()
     main()

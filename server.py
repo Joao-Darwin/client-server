@@ -64,7 +64,7 @@ def handle_client(client_socket, client_address, data):
                 try:
                     regex = re.compile(filename_pattern)
                     results = [
-                        f"----------\nName: {f['filename']}\nIP: {ip}\nSize: {f['size']}" 
+                        f"\n----------\nName: {f['filename']}\nIP: {ip}\nSize: {f['size']}" 
                         for ip, files in data.items()
                         for f in files if regex.search(f['filename'])
                     ]
@@ -86,16 +86,17 @@ def handle_client(client_socket, client_address, data):
             elif command == 'LISTFILES':
                 response = ''
                 for client in data:
-                    response = response + f'ip: {client}\n'
                     for file in data[client]:
-                        response = response + f'   filename: {file["filename"]}\n'
-                        response = response + f'   size: {file["size"]}\n'
+                        response = response + f"\n----------\nName: {file['filename']}\nIP: {client}\nSize: {file['size']}"
                 
                 client_socket.sendall(response.encode())
             
-            elif command == 'GET':
-                filename, offset_start, offset_end = args
-                print(filename, offset_start, offset_end)
+            elif command == 'LISTMYFILES':
+                response = "\n".join(
+                    f"Name: {file['filename']}"
+                    for file in data[client_ip]
+                )
+                client_socket.sendall(response.encode() if response else b"NOFILES")
 
         except Exception as e:
             print(f"[ERROR] {client_ip}: {e}")
