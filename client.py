@@ -134,55 +134,73 @@ def delete_file(server_ip, filename):
     except Exception as e:
         print(f"[ERROR] {e}")
 
+def list_servers(servers: list):
+    if len(servers) == 0:
+        print("\nYou dont have any server...")
+        return
+
+    print('\n----------\n')
+    for server in servers:
+        print(f'{server}\n')
+    print('----------\n')
+
+def handle_server_connection():
+    threading.Thread(target=start_file_server, daemon=True).start()
+    server_ip = input("Enter server IP to connect: ")
+    join_server(server_ip)
+    while True:
+        print(f"\nServer: {server_ip}")
+        print_options()
+        choice = input("Select an option: ")
+        if choice == "1":
+            refresh_list(server_ip)
+        elif choice == "2":
+            filename = input("Enter filename to search: ")
+            search_file(server_ip, filename)
+        elif choice == "3":
+            client_ip = input("Enter client IP: ")
+            filename = input("Enter filename to download: ")
+            offset_start = input("Enter offset start: ")
+            offset_end = input("Enter offset end (optional): ") or None
+            get_file(client_ip, filename, offset_start, offset_end)
+        elif choice == "4":
+            leave_server(server_ip)
+            break
+        elif choice == "5":
+            list_files(server_ip)
+        elif choice == "6":
+            filename = input("Enter filename to delete: ")
+            delete_file(server_ip, filename)
+        else:
+            input("\nInvalid option, try againg...")
+    return server_ip
+
 def print_options():
-    print("\n1- JOIN SERVER")
-    print("2- REFRESH LIST")
-    print("3- SEARCH FILE")
-    print("4- GET FILE")
-    print("5- LEAVE SERVER")
-    print("6- LIST FILES")
-    print("7- DELETE FILE")
-    print("0- EXIT\n")
+    print("1- REFRESH LIST")
+    print("2- SEARCH FILE")
+    print("3- GET FILE")
+    print("4- LEAVE SERVER")
+    print("5- LIST FILES")
+    print("6- DELETE FILE\n")
 
 def main():
+    servers = []
     try:
         while True:
-            print_options()
+            print("\n1- List my servers")
+            print("2- Connect to server")
+            print("0- Exit\n")
             choice = input("Select an option: ")
+
             if choice == "1":
-                server_ip = input("Enter server IP: ")
-                join_server(server_ip)
+                list_servers(servers)
             elif choice == "2":
-                server_ip = input("Enter server IP: ")
-                refresh_list(server_ip)
-            elif choice == "3":
-                server_ip = input("Enter server IP: ")
-                filename = input("Enter filename to search: ")
-                search_file(server_ip, filename)
-            elif choice == "4":
-                client_ip = input("Enter client IP: ")
-                filename = input("Enter filename to download: ")
-                offset_start = input("Enter offset start: ")
-                offset_end = input("Enter offset end (optional): ") or None
-                get_file(client_ip, filename, offset_start, offset_end)
-            elif choice == "5":
-                server_ip = input("Enter server IP: ")
-                leave_server(server_ip)
-            elif choice == "6":
-                server_ip = input("Enter server IP: ")
-                list_files(server_ip)
-            elif choice == "7":
-                server_ip = input("Enter server IP: ")
-                filename = input("Enter filename to delete: ")
-                delete_file(server_ip, filename)
+                server = handle_server_connection()
+                servers.append(server)
             elif choice == "0":
-                print("[INFO] Exiting program.")
                 break
-            else:
-                input("\nInvalid option, try againg...")
     except KeyboardInterrupt:
         print("\nSEE YOU LATER :)")
 
 if __name__ == "__main__":
-    threading.Thread(target=start_file_server, daemon=True).start()
     main()
