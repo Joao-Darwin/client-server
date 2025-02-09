@@ -2,6 +2,7 @@ import socket
 import threading
 import json
 import os
+import re
 
 LOCK = threading.Lock()
 DATA_FILE = 'server_data.json'
@@ -58,15 +59,20 @@ def handle_client(client_socket, client_address, data):
                     client_socket.sendall(b"FILENOTFOUND")
 
             elif command == 'SEARCH':
-                filename = args[0]
-                results = [
-                    f"FILE {f['filename']} {ip} {f['size']}" for ip, files in data.items()
-                    for f in files if f['filename'] == filename
-                ]
-                if results:
-                    client_socket.sendall("\n".join(results).encode())
-                else:
-                    client_socket.sendall(b"FILENOTFOUND")
+                filename_pattern = args[0]
+                try:
+                    regex = re.compile(filename_pattern)
+                    results = [
+                        f"----------\nName: {f['filename']}\nIP: {ip}\nSize: {f['size']}" 
+                        for ip, files in data.items()
+                        for f in files if regex.search(f['filename'])
+                    ]
+                    if results:
+                        client_socket.sendall("\n".join(results).encode())
+                    else:
+                        client_socket.sendall(b"FILENOTFOUND")
+                except re.error:
+                    client_socket.sendall(b"INVALIDREGEX")
 
             elif command == 'LEAVE':
                 if client_ip in data:
@@ -85,6 +91,10 @@ def handle_client(client_socket, client_address, data):
                         response = response + f'   size: {file["size"]}\n'
                 
                 client_socket.sendall(response.encode())
+            
+            elif command == 'GET':
+                filename, offset_start, offset_end = args
+                print(filename, offset_start, offset_end)
 
         except Exception as e:
             print(f"[ERROR] {client_ip}: {e}")
