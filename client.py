@@ -145,7 +145,6 @@ def list_servers(servers: list):
     print('----------\n')
 
 def handle_server_connection():
-    threading.Thread(target=start_file_server, daemon=True).start()
     server_ip = input("Enter server IP to connect: ")
     join_server(server_ip)
     while True:
@@ -203,4 +202,5 @@ def main():
         print("\nSEE YOU LATER :)")
 
 if __name__ == "__main__":
+    threading.Thread(target=start_file_server, daemon=True).start()
     main()
