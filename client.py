@@ -1,13 +1,27 @@
 import socket
 import os
 import threading
+import json
 
+LOCK = threading.Lock()
 SERVER_PORT = 1234
 CLIENT_PORT = 1235
 PUBLIC_FOLDER = "./public"
+DATA_FILE = "servers.json"
 
 if not os.path.exists(PUBLIC_FOLDER):
     os.makedirs(PUBLIC_FOLDER)
+
+def load_data():
+    if not os.path.exists(DATA_FILE):
+        return []
+    with open(DATA_FILE, 'r') as file:
+        return json.load(file)
+
+def save_data(data):
+    with LOCK:
+        with open(DATA_FILE, 'w') as file:
+            json.dump(data, file, ensure_ascii=False, indent=2)
 
 def handle_file_request(client_socket):
     try:
@@ -184,7 +198,7 @@ def print_options():
     print("6- DELETE FILE\n")
 
 def main():
-    servers = []
+    servers = load_data()
     try:
         while True:
             print("\n1- List my servers")
@@ -196,7 +210,9 @@ def main():
                 list_servers(servers)
             elif choice == "2":
                 server = handle_server_connection()
-                servers.append(server)
+                if server not in servers:
+                    servers.append(server)
+                    save_data(servers)
             elif choice == "0":
                 break
     except KeyboardInterrupt:
