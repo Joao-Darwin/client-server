@@ -63,7 +63,7 @@ def join_server(server_ip):
     except Exception as e:
         print(f"[ERROR] {e}")
 
-def refresh_list(server_ip):
+def update_file_list(server_ip):
     files_local = {f for f in os.listdir(PUBLIC_FOLDER) if os.path.isfile(os.path.join(PUBLIC_FOLDER, f))}
 
     try:
@@ -150,24 +150,43 @@ def delete_file(server_ip, filename):
         print(f"[ERROR] {e}")
 
 def list_servers(servers: list):
-    if len(servers) == 0:
-        print("\nYou dont have any server...")
-        return
+    print("\n================ SERVER LIST ================")
+    if not servers:
+        print("You don't have any servers saved.")
+    else:
+        for i, server in enumerate(servers, 1):
+            print(f"[{i}] {server}")
+    print("===========================================\n")
 
-    print('\n----------\n')
-    for server in servers:
-        print(f'{server}\n')
-    print('----------\n')
+def print_main_menu():
+    print("\n===========================================")
+    print("              MAIN MENU")
+    print("===========================================")
+    print("[1] List my servers")
+    print("[2] Connect to server")
+    print("[0] Exit")
+    print("===========================================\n")
+
+def print_server_menu(server_ip):
+    print("\n===========================================")
+    print(f"        CONNECTED TO: {server_ip}")
+    print("===========================================")
+    print("[1] Update File List")
+    print("[2] Search File")
+    print("[3] Download File")
+    print("[4] Leave Server")
+    print("[5] List Files on Server")
+    print("[6] Delete File")
+    print("===========================================\n")
 
 def handle_server_connection():
     server_ip = input("Enter server IP to connect: ")
     join_server(server_ip)
     while True:
-        print(f"\nServer: {server_ip}")
-        print_options()
+        print_server_menu(server_ip)
         choice = input("Select an option: ")
         if choice == "1":
-            refresh_list(server_ip)
+            update_file_list(server_ip)
         elif choice == "2":
             filename = input("Enter filename to search: ")
             search_file(server_ip, filename)
@@ -186,26 +205,15 @@ def handle_server_connection():
             filename = input("Enter filename to delete: ")
             delete_file(server_ip, filename)
         else:
-            input("\nInvalid option, try againg...")
+            print("\n[ERROR] Invalid option. Please try again.\n")
     return server_ip
-
-def print_options():
-    print("1- REFRESH LIST")
-    print("2- SEARCH FILE")
-    print("3- GET FILE")
-    print("4- LEAVE SERVER")
-    print("5- LIST FILES")
-    print("6- DELETE FILE\n")
 
 def main():
     servers = load_data()
     try:
         while True:
-            print("\n1- List my servers")
-            print("2- Connect to server")
-            print("0- Exit\n")
+            print_main_menu()
             choice = input("Select an option: ")
-
             if choice == "1":
                 list_servers(servers)
             elif choice == "2":
@@ -215,8 +223,10 @@ def main():
                     save_data(servers)
             elif choice == "0":
                 break
+            else:
+                print("\n[ERROR] Invalid option. Please try again.\n")
     except KeyboardInterrupt:
-        print("\nSEE YOU LATER :)")
+        print("\nSEE YOU LATER :)\n")
 
 if __name__ == "__main__":
     threading.Thread(target=start_file_server, daemon=True).start()
