@@ -5,7 +5,7 @@ import os
 import re
 
 LOCK = threading.Lock()
-DATA_FILE = 'server_data.json'
+DATA_FILE = 'data.json'
 SERVER_PORT = 1234
 
 def load_data():
@@ -47,7 +47,7 @@ def handle_client(client_socket, client_address, data):
                 else:
                     data[client_ip].append({"filename": filename, "size": size})
                     save_data(data)
-                    client_socket.sendall(b"CONFIRMCREATEFILE")
+                    client_socket.sendall(f"CONFIRMCREATEFILE {filename}".encode())
 
             elif command == 'DELETEFILE':
                 filename = args[0]
@@ -55,7 +55,7 @@ def handle_client(client_socket, client_address, data):
                 if any(f['filename'] == filename for f in data.get(client_ip, [])):
                     data[client_ip] = [f for f in data[client_ip] if f['filename'] != filename]
                     save_data(data)
-                    client_socket.sendall(b"CONFIRMDELETEFILE")
+                    client_socket.sendall(f"CONFIRMDELETEFILE {filename}".encode())
                 else:
                     client_socket.sendall(b"FILENOTFOUND")
 
@@ -64,7 +64,7 @@ def handle_client(client_socket, client_address, data):
                 try:
                     regex = re.compile(filename_pattern)
                     results = [
-                        f"\n----------\nName: {f['filename']}\nIP: {ip}\nSize: {f['size']}" 
+                        f"FILE {f['filename']} {ip} {f['size']}" 
                         for ip, files in data.items()
                         for f in files if regex.search(f['filename'])
                     ]
@@ -80,23 +80,17 @@ def handle_client(client_socket, client_address, data):
                     del data[client_ip]
                     save_data(data)
                     client_socket.sendall(b"CONFIRMLEAVE")
-                else:
-                    client_socket.sendall(b"CLIENTNOTFOUND")
 
             elif command == 'LISTFILES':
-                response = ''
-                for client in data:
-                    for file in data[client]:
-                        response = response + f"\n----------\nName: {file['filename']}\nIP: {client}\nSize: {file['size']}"
-                
-                client_socket.sendall(response.encode())
-            
-            elif command == 'LISTMYFILES':
-                response = "\n".join(
-                    f"Name: {file['filename']}"
-                    for file in data[client_ip]
-                )
-                client_socket.sendall(response.encode() if response else b"NOFILES")
+                results = [
+                    f"FILE {f['filename']} {ip} {f['size']}" 
+                    for ip, files in data.items()
+                    for f in files
+                ]
+                if results:
+                    client_socket.sendall("\n".join(results).encode())
+                else:
+                    client_socket.sendall(b"ANYFILE")
 
         except Exception as e:
             print(f"[ERROR] {client_ip}: {e}")

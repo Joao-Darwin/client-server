@@ -56,17 +56,18 @@ def refresh_list(server_ip):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
             client_socket.connect((server_ip, SERVER_PORT))
 
-            client_socket.sendall(b"LISTMYFILES")
-            response = client_socket.recv(4096).decode()
+            client_socket.sendall(b"LISTFILES")
+            response = client_socket.recv(4096).decode().strip()
 
             files_server = set()
-            if response.strip():
-                for line in response.strip().split("\n"):
-                    if "Name: " in line:
-                        filename = line.replace("Name: ", "").strip()
+            if response and response != "ANYFILE":
+                for line in response.split("\n"):
+                    parts = line.split()
+                    if len(parts) >= 3 and parts[0] == "FILE":
+                        filename = parts[1]
                         files_server.add(filename)
 
-            for file in files_local:
+            for file in files_local - files_server:
                 size = os.path.getsize(os.path.join(PUBLIC_FOLDER, file))
                 client_socket.sendall(f"CREATEFILE {file} {size}".encode())
                 print(client_socket.recv(1024).decode())
@@ -100,7 +101,7 @@ def get_file(client_ip, filename, offset_start, offset_end=None):
                     if not data:
                         break
                     file.write(data)
-            print(f"[INFO] File {filename} downloaded successfully.")
+            print(f"\nFile {filename} downloaded successfully.")
     except Exception as e:
         print(f"[ERROR] {e}")
 
