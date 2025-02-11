@@ -175,4 +175,4 @@ cython_debug/
 
 # Project files
 public/
-server_data.json
+data.json
